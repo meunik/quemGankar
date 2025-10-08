@@ -135,6 +135,126 @@ export const calculateChampionSides = async (positionData, champions, version) =
         const details = await getChampionDetails(version, champion.id)
         
         if (details) {
+          // ===== CALCULAR FACILIDADE DE GANKAR POR NÍVEL =====
+          // Facilidade = Quão FÁCIL é para o jungler gankar COM esse campeão ALIADO
+          // ALTO = Campeão tem CC, setup, follow-up fácil (Pantheon stun, Jax stun)
+          // BAIXO = Campeão sem CC, skills difíceis, sem setup (Heimerdinger, Fiora)
+          
+          const gankEase = {
+            level2: 3, // Base médio
+            level3: 3,
+            level6: 3
+          }
+          
+          // === NÍVEL 2 (W + Q ou E) ===
+          let lvl2Score = 0
+          
+          // FÁCIL DE GANKAR COM (aumenta score):
+          // 1. Tanks/Suportes com CC early (setup para gank)
+          if (details.tags.includes('Tank')) lvl2Score += 2.5  // CC cedo (Leona, Nautilus)
+          if (details.tags.includes('Support')) lvl2Score += 2  // CC/slow (Thresh, Lulu)
+          
+          // 2. Fighters com stun/gap closer (Pantheon W, Jax E+Q)
+          if (details.tags.includes('Fighter') && details.info.attack >= 7) lvl2Score += 2
+          
+          // 3. Mages com CC (Lux Q, Morgana Q)
+          if (details.tags.includes('Mage') && details.info.magic >= 6) lvl2Score += 1.5
+          
+          // 4. Campeões com slow/root no kit early
+          if (details.tags.includes('Support') && details.info.magic >= 5) lvl2Score += 1
+          
+          // DIFÍCIL DE GANKAR COM (diminui score):
+          // 1. Marksman (sem CC lvl 2, só dano)
+          if (details.tags.includes('Marksman')) lvl2Score -= 2
+          
+          // 2. Assassinos sem setup (burst mas sem CC)
+          if (details.tags.includes('Assassin')) lvl2Score -= 1.5
+          
+          // 3. Mages sem CC/setup (Heimerdinger, Ziggs)
+          if (details.tags.includes('Mage') && details.info.magic <= 5) lvl2Score -= 1.5
+          
+          // 4. Fighters sem CC (Fiora, Tryndamere)
+          if (details.tags.includes('Fighter') && details.info.attack <= 6) lvl2Score -= 1
+          
+          gankEase.level2 = Math.min(5, Math.max(1, Math.round(3 + lvl2Score)))
+          
+          // === NÍVEL 3 (Kit completo Q+W+E) ===
+          let lvl3Score = 0
+          
+          // FÁCIL DE GANKAR COM:
+          // 1. Tanks com CC completo (setup perfeito)
+          if (details.tags.includes('Tank')) lvl3Score += 3  // Kit completo com CC
+          
+          // 2. Fighters com stun/dash (Pantheon, Jax, Renekton)
+          if (details.tags.includes('Fighter')) {
+            if (details.info.attack >= 8) lvl3Score += 2.5  // CC + gap closer
+            else lvl3Score += 1.5  // Fighters normais
+          }
+          
+          // 3. Suportes com CC chain (Thresh, Nautilus, Leona)
+          if (details.tags.includes('Support')) lvl3Score += 2.5
+          
+          // 4. Mages com CC (Lux, Syndra, Orianna)
+          if (details.tags.includes('Mage')) {
+            if (details.info.magic >= 7) lvl3Score += 2  // Muito CC
+            else lvl3Score += 1  // CC moderado
+          }
+          
+          // 5. Assassinos com CC (Zed W+E slow, Qiyana stun)
+          if (details.tags.includes('Assassin') && details.info.attack >= 8) lvl3Score += 1.5
+          
+          // DIFÍCIL DE GANKAR COM:
+          // 1. Marksman (continuam sem CC)
+          if (details.tags.includes('Marksman')) lvl3Score -= 2.5
+          
+          // 2. Assassinos pure burst sem CC (Katarina, Akali)
+          if (details.tags.includes('Assassin') && details.info.attack <= 7) lvl3Score -= 2
+          
+          // 3. Mages poke sem CC (Ziggs, Xerath)
+          if (details.tags.includes('Mage') && details.info.magic <= 5) lvl3Score -= 1.5
+          
+          gankEase.level3 = Math.min(5, Math.max(1, Math.round(3 + lvl3Score)))
+          
+          // === NÍVEL 6 (Ultimate disponível) ===
+          let lvl6Score = 0
+          
+          // FÁCIL DE GANKAR COM:
+          // 1. Tanks com ult de engage (Malphite R, Ornn R)
+          if (details.tags.includes('Tank')) lvl6Score += 3
+          
+          // 2. Suportes com ult de CC (Leona R, Nautilus R, Thresh R)
+          if (details.tags.includes('Support')) lvl6Score += 2.5
+          
+          // 3. Fighters com ult de engage (Camille R, Jax R+stun)
+          if (details.tags.includes('Fighter')) {
+            if (details.info.attack >= 8) lvl6Score += 2.5
+            else lvl6Score += 1.5
+          }
+          
+          // 4. Mages com ult de CC (Lux R, Syndra R, Orianna R)
+          if (details.tags.includes('Mage')) {
+            if (details.info.magic >= 7) lvl6Score += 2.5
+            else lvl6Score += 1.5
+          }
+          
+          // 5. Marksman com ult de CC (Ashe R, Varus R, Jhin W+R)
+          if (details.tags.includes('Marksman') && details.info.attack >= 8) lvl6Score += 2
+          
+          // 6. Assassinos com ult de setup (Zed R, Fizz R)
+          if (details.tags.includes('Assassin')) {
+            if (details.info.attack >= 9) lvl6Score += 2  // Ult com CC
+            else lvl6Score += 0.5  // Ult só de burst
+          }
+          
+          // DIFÍCIL DE GANKAR COM:
+          // 1. Marksman sem CC na ult (Kai'Sa, Ezreal, Lucian)
+          if (details.tags.includes('Marksman') && details.info.attack <= 7) lvl6Score -= 1.5
+          
+          // 2. Assassinos pure burst (Katarina R, Akali R)
+          if (details.tags.includes('Assassin') && details.info.attack <= 7) lvl6Score -= 1
+          
+          gankEase.level6 = Math.min(5, Math.max(1, Math.round(3 + lvl6Score)))
+          
           // ===== CALCULAR POTENCIAL DE GANK =====
           // Baseado em: CC potencial, burst damage, mobilidade
           let gankPotential = 0
@@ -188,6 +308,7 @@ export const calculateChampionSides = async (positionData, champions, version) =
           championSideMap[champion.name][positionName] = {
             side: isStrongSide ? 'STRONG' : 'WEAK',
             gankPotential: normalizedGankPotential,
+            gankEase: gankEase, // { level2: 1-5, level3: 1-5, level6: 1-5 }
             pickRate: pickRate,
             strongSideScore: strongSideScore,
             tags: details.tags,

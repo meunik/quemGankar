@@ -47,6 +47,7 @@
         :rank="selectedChampionRank"
         :version="version"
         :rating="selectedChampionRating"
+        :gank-ease="selectedChampionGankEase"
         :is-selected="true"
         :champion-side="championSides[selectedChampion.name]?.[position]"
       />
@@ -62,6 +63,7 @@
         :rank="getChampionRank(champion, index)"
         :version="version"
         :rating="getRating(champion)"
+        :gank-ease="getGankEase(champion)"
         :is-selected="false"
         :champion-side="championSides[champion.name]?.[position]"
       />
@@ -103,6 +105,10 @@ const props = defineProps({
   isBestLane: {
     type: Boolean,
     default: false
+  },
+  selectedLevel: {
+    type: Number,
+    default: null
   }
 })
 
@@ -146,6 +152,12 @@ const selectedChampionRating = computed(() => {
   return props.championSides[props.selectedChampion.name]?.[props.position]?.gankPotential || 3
 })
 
+// Obtém a facilidade de gankar do campeão selecionado
+const selectedChampionGankEase = computed(() => {
+  if (!props.selectedChampion) return 3
+  return getGankEase(props.selectedChampion)
+})
+
 // Campeões exibidos (sem o selecionado se ele estiver na lista)
 const displayedChampions = computed(() => {
   if (!props.selectedChampion) return props.champions
@@ -162,6 +174,20 @@ const getChampionRank = (champion, displayIndex) => {
 // Função para obter rating do campeão (usa gankPotential do championSides)
 const getRating = (champion) => {
   return props.championSides[champion.name]?.[props.position]?.gankPotential || 3
+}
+
+// Função para obter facilidade de gankar baseado no nível selecionado
+const getGankEase = (champion) => {
+  const gankEaseData = props.championSides[champion.name]?.[props.position]?.gankEase
+  if (!gankEaseData) return 3
+  
+  if (props.selectedLevel === 2) return gankEaseData.level2 || 3
+  if (props.selectedLevel === 3) return gankEaseData.level3 || 3
+  if (props.selectedLevel === 6) return gankEaseData.level6 || 3
+  
+  // Se "Todos", retorna média
+  const avg = (gankEaseData.level2 + gankEaseData.level3 + gankEaseData.level6) / 3
+  return Math.round(avg)
 }
 </script>
 

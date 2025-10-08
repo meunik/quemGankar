@@ -73,42 +73,53 @@
         <div class="flex items-start space-x-2">
           <div class="text-blue-400 text-lg mt-0.5">ℹ️</div>
           <div class="flex-1">
-            <h3 class="text-white font-semibold text-sm mb-2">Sistema de Classificação Dinâmico:</h3>
+            <h3 class="text-white font-semibold text-sm mb-2">Sistema de Classificação com 4 Métricas:</h3>
             
-            <!-- Prioridade 1: Potencial de Gank -->
+            <!-- Prioridade 1: Facilidade de Gankar -->
             <div class="mb-2">
               <p class="text-gray-300 text-xs font-medium mb-1">
-                <strong class="text-gold-400">1️⃣ Potencial de Gank</strong> (1-5 ⭐) - Prioridade MÁXIMA
+                <strong class="text-emerald-400">1️⃣ Facilidade de Gankar</strong> (1-5 ⭐) - 🔥 PESO MÁXIMO
               </p>
               <p class="text-gray-400 text-xs leading-relaxed ml-4">
-                Baseado em CC, burst damage e vulnerabilidade. Tanks e Marksmen = alto potencial.
+                Quão <strong>fácil é gankar COM esse campeão ALIADO</strong>. Alto = Campeão tem CC/setup (Pantheon stun, Jax E, Leona). Baixo = Sem CC/difícil (Heimerdinger, Fiora). 
+                <strong>Varia por nível:</strong> Tanks/Suportes fortes em todos os níveis (CC), Marksman fracos até lvl 6 (alguns ganham ult de CC como Ashe R).
               </p>
             </div>
             
-            <!-- Prioridade 2: Strong/Weak Side -->
+            <!-- Prioridade 2: Potencial de Gank -->
             <div class="mb-2">
               <p class="text-gray-300 text-xs font-medium mb-1">
-                <strong class="text-red-400">2️⃣ Strong Side</strong> 🔥 vs <strong class="text-blue-400">Weak Side</strong> ⚖️
+                <strong class="text-gold-400">2️⃣ Potencial de Gank</strong> (1-5 ⭐) - 🔥 PESO MÁXIMO
+              </p>
+              <p class="text-gray-400 text-xs leading-relaxed ml-4">
+                Baseado em CC, burst damage e vulnerabilidade do campeão. Tanks e Marksmen = alto potencial.
+              </p>
+            </div>
+            
+            <!-- Prioridade 3: Strong/Weak Side -->
+            <div class="mb-2">
+              <p class="text-gray-300 text-xs font-medium mb-1">
+                <strong class="text-red-400">3️⃣ Strong Side</strong> 🔥 vs <strong class="text-blue-400">Weak Side</strong> ⚖️ - Peso Menor
               </p>
               <div class="text-gray-400 text-xs leading-relaxed ml-4 space-y-0.5">
-                <div><span class="text-red-400 font-bold">Strong Side:</span> Campeões early game que PRECISAM de ganks para snowball (ex: Samira, Draven)</div>
-                <div><span class="text-blue-400 font-bold">Weak Side:</span> Campeões que escalam sozinhos e podem esperar (ex: K'Sante, Orianna)</div>
+                <div><span class="text-red-400 font-bold">🔥 Strong:</span> Precisam de ganks early (Samira, Draven)</div>
+                <div><span class="text-blue-400 font-bold">⚖️ Weak:</span> Escalam sozinhos (K'Sante, Orianna)</div>
               </div>
             </div>
             
-            <!-- Prioridade 3: Pick Rate -->
+            <!-- Prioridade 4: Pick Rate -->
             <div>
               <p class="text-gray-300 text-xs font-medium mb-1">
-                <strong class="text-purple-400">3️⃣ Pick Rate</strong> 📊 - Desempate
+                <strong class="text-purple-400">4️⃣ Pick Rate</strong> (%) - Desempate Final
               </p>
               <p class="text-gray-400 text-xs leading-relaxed ml-4">
-                Taxa de escolha do campeão na posição. Usado como critério final de ordenação.
+                Taxa de escolha do campeão na posição. Usado apenas como critério de desempate.
               </p>
             </div>
             
             <div class="mt-2 pt-2 border-t border-blue-700/30">
               <p class="text-gray-400 text-xs italic">
-                ✨ Todos os dados são calculados dinamicamente a partir das APIs da Riot Games
+                ✨ Todas as métricas são calculadas dinamicamente a partir das APIs da Riot Games
               </p>
             </div>
           </div>
@@ -187,6 +198,7 @@
           :champion-sides="championSides"
           :version="gameVersion"
           :selected-champion="selectedChampions[position]"
+          :selected-level="selectedLevel"
           :is-best-lane="getBestLaneToGank === position"
           @update:selected-champion="(champion) => updateSelectedChampion(position, champion)"
         />
@@ -307,7 +319,9 @@ const getChampionsByPosition = (position) => {
     }
   })
   
-  // Ordenar baseado em prioridade: 1) Gank Potential, 2) Strong Side, 3) Pick Rate
+  // Ordenar baseado em prioridade com pesos:
+  // PESO ALTO: 1) Facilidade de Gankar (por nível), 2) Potencial de Gank
+  // PESO BAIXO: 3) Strong Side, 4) Pick Rate
   positionChampions.sort((a, b) => {
     const aSideData = championSides.value[a.name]?.[position]
     const bSideData = championSides.value[b.name]?.[position]
@@ -317,15 +331,39 @@ const getChampionsByPosition = (position) => {
     if (!aSideData) return 1
     if (!bSideData) return -1
     
-    // Prioridade 1: Gank Potential (maior é melhor)
+    // Prioridade 1: Facilidade de Gankar (baseado no nível selecionado)
+    let aGankEase = 3
+    let bGankEase = 3
+    
+    if (selectedLevel.value === 2) {
+      aGankEase = aSideData.gankEase?.level2 || 3
+      bGankEase = bSideData.gankEase?.level2 || 3
+    } else if (selectedLevel.value === 3) {
+      aGankEase = aSideData.gankEase?.level3 || 3
+      bGankEase = bSideData.gankEase?.level3 || 3
+    } else if (selectedLevel.value === 6) {
+      aGankEase = aSideData.gankEase?.level6 || 3
+      bGankEase = bSideData.gankEase?.level6 || 3
+    } else {
+      // Se "Todos", usa média dos 3 níveis
+      const aAvg = ((aSideData.gankEase?.level2 || 3) + (aSideData.gankEase?.level3 || 3) + (aSideData.gankEase?.level6 || 3)) / 3
+      const bAvg = ((bSideData.gankEase?.level2 || 3) + (bSideData.gankEase?.level3 || 3) + (bSideData.gankEase?.level6 || 3)) / 3
+      aGankEase = aAvg
+      bGankEase = bAvg
+    }
+    
+    const gankEaseDiff = bGankEase - aGankEase
+    if (Math.abs(gankEaseDiff) >= 0.5) return gankEaseDiff
+    
+    // Prioridade 2: Potencial de Gank (maior é melhor)
     const gankPotentialDiff = (bSideData.gankPotential || 0) - (aSideData.gankPotential || 0)
     if (gankPotentialDiff !== 0) return gankPotentialDiff
     
-    // Prioridade 2: Strong Side vem primeiro (campeões que PRECISAM de gank)
+    // Prioridade 3: Strong Side vem primeiro (peso menor)
     if (aSideData.side === 'STRONG' && bSideData.side === 'WEAK') return -1
     if (aSideData.side === 'WEAK' && bSideData.side === 'STRONG') return 1
     
-    // Prioridade 3: Pick Rate (maior é melhor)
+    // Prioridade 4: Pick Rate (peso menor, desempate final)
     return bSideData.pickRate - aSideData.pickRate
   })
   

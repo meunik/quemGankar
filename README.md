@@ -1,6 +1,33 @@
 # Quem Gankar - League of Legends
 
-Uma aplicação web que mostra o ranking dos melhores campeões para o jungle gankar em cada rota (Mid, Top, ADC, Suporte) no League of Legends, especializada em ganks de níveis 2, 3 e 6.
+Uma aplicação web que mostra o ranking dos melhores campeões para o ### Algoritmo de Ordenação
+
+Os campeões são ordenados por **quatro critérios em ordem de prioridade**:
+
+1. **Facilidade de Gankar** (1-5 estrelas) 🌟 - 🔥 PESO MÁXIMO
+   - Quão fácil é para o jungler gankar COM aquele campeão ALIADO na lane
+   - **Varia dinamicamente por nível (2, 3, 6):**
+     - **Nível 2**: Tanks/Suportes com CC early (Leona E, Nautilus Q)
+     - **Nível 3**: Fighters com stun/setup (Pantheon W, Jax E+Q, Renekton W)
+     - **Nível 6**: Ultimates de CC/engage (Malphite R, Ashe R, Leona R)
+   - Calculado dinamicamente via tags e stats da API
+   - Fatores: CC disponível, setup potencial, follow-up
+   - Alto = Campeão tem CC/setup fácil | Baixo = Sem CC, skills difíceis
+   
+2. **Potencial de Gank** (1-5 estrelas) 🌟 - 🔥 PESO MÁXIMO
+   - Baseado em: CC potencial, burst damage, mobilidade do campeão inimigo
+   - Calculado dinamicamente usando tags e stats da API
+   - Fatores: Tanks (CC pesado), Marksman (vulneráveis), Fighters (engage), etc.
+   
+3. **Strong/Weak Side** 💪 - Peso Menor
+   - Strong Side aparece antes (mas com peso menor que Facilidade/Potencial)
+   - Weak Side aparece depois
+   - Determina quem PRECISA vs quem PODE ESPERAR por ganks
+   
+4. **Pick Rate** 📊 - Desempate Final
+   - Taxa de escolha do campeão na posição (valor percentual)
+   - Usado apenas como critério de desempate final
+   - Exibido em badge roxo compacto no card do campeãoada rota (Mid, Top, ADC, Suporte) no League of Legends, especializada em ganks de níveis 2, 3 e 6.
 
 ## 🎮 Características
 
@@ -127,6 +154,25 @@ Os campeões são ordenados por **três critérios em ordem de prioridade**:
 Todos os valores são calculados em tempo real a partir das APIs:
 
 ```javascript
+// Facilidade de Gankar - quão fácil é gankar COM o campeão ALIADO
+// NÍVEL 2 (W + Q ou E)
+if (tags.includes('Tank')) lvl2Score += 2.5           // CC early (Leona, Nautilus)
+if (tags.includes('Support')) lvl2Score += 2          // Setup (Thresh, Lulu)
+if (tags.includes('Fighter') && attack >= 7) lvl2Score += 2  // Stun/gap closer
+if (tags.includes('Marksman')) lvl2Score -= 2         // Sem CC, só dano
+
+// NÍVEL 3 (Q + W + E - Kit completo)
+if (tags.includes('Tank')) lvl3Score += 3             // Kit completo com CC
+if (tags.includes('Fighter') && attack >= 8) lvl3Score += 2.5  // Pantheon, Jax
+if (tags.includes('Support')) lvl3Score += 2.5        // CC chain
+if (tags.includes('Marksman')) lvl3Score -= 2.5       // Ainda sem CC
+
+// NÍVEL 6 (Ultimate)
+if (tags.includes('Tank')) lvl6Score += 3             // Ult de engage (Malphite R)
+if (tags.includes('Support')) lvl6Score += 2.5        // Ult de CC (Leona R)
+if (tags.includes('Marksman') && attack >= 8) lvl6Score += 2  // Ashe R, Varus R
+if (tags.includes('Marksman') && attack <= 7) lvl6Score -= 1.5  // Kai'Sa, Ezreal
+
 // Strong/Weak Side - baseado em características do campeão
 if (tags.includes('Assassin')) strongSideScore += 2
 if (tags.includes('Fighter')) strongSideScore += 1.5
@@ -145,6 +191,7 @@ Isso garante que o sistema se adapta automaticamente a:
 - ✅ Novos campeões lançados
 - ✅ Reworks de campeões existentes
 - ✅ Ajustes de balanceamento da Riot
+- ✅ Power spikes por nível (2, 3, 6)
 
 ### Critérios de Avaliação
 

@@ -38,39 +38,55 @@
         </h3>
         <p class="text-xs text-gray-400 line-clamp-1">{{ champion.title }}</p>
         
-        <!-- Badge Strong/Weak Side -->
-        <div v-if="championSide" class="mt-1 flex flex-col items-center space-y-1">
+        <!-- Badges Compactos: Strong/Weak Side + Pick Rate lado a lado -->
+        <div v-if="championSide" class="mt-1 flex items-center justify-center gap-1">
+          <!-- Strong/Weak Side (só ícone + cor) -->
           <span 
             v-if="championSide.side === 'STRONG'"
-            class="inline-block px-2 py-0.5 bg-red-600 text-white text-xs font-bold rounded-full"
+            class="inline-flex items-center justify-center w-6 h-6 bg-red-600 rounded-full"
             title="Strong Side - Precisa de ganks early para snowball!"
           >
-            � STRONG SIDE
+            <span class="text-sm">🔥</span>
           </span>
           <span 
             v-else
-            class="inline-block px-2 py-0.5 bg-blue-600 text-white text-xs font-bold rounded-full"
+            class="inline-flex items-center justify-center w-6 h-6 bg-blue-600 rounded-full"
             title="Weak Side - Escala bem, pode ficar sozinho"
           >
-            ⚖️ WEAK SIDE
+            <span class="text-sm">⚖️</span>
           </span>
           
-          <!-- Pick Rate separado -->
+          <!-- Pick Rate (só porcentagem + cor) -->
           <span 
-            class="inline-block px-2 py-0.5 bg-purple-600/80 text-white text-xs font-medium rounded-full"
+            class="inline-block px-2 py-0.5 bg-purple-600/80 text-white text-xs font-semibold rounded-full"
             :title="`Taxa de escolha: ${(championSide.pickRate * 100).toFixed(1)}%`"
           >
-            � {{ (championSide.pickRate * 100).toFixed(1) }}% pick
+            {{ (championSide.pickRate * 100).toFixed(1) }}%
           </span>
+        </div>
+      </div>
+      
+      <!-- Facilidade de Gankar -->
+      <div v-if="gankEase !== null" class="flex flex-col items-center space-y-1 w-full">
+        <span class="text-xs text-emerald-400 font-medium">Facilidade</span>
+        <div class="flex items-center space-x-1">
+          <div class="flex space-x-1">
+            <div v-for="n in 5" :key="'ease-' + n" 
+                 class="w-2 h-2 rounded-full transition-all" 
+                 :class="n <= gankEase ? 'bg-emerald-400 shadow-sm shadow-emerald-400' : 'bg-gray-600'"
+                 :title="`${gankEase} de 5 - Facilidade de gankar`">
+            </div>
+          </div>
+          <span class="text-xs text-gray-300 ml-1 font-semibold">{{ gankEase }}/5</span>
         </div>
       </div>
       
       <!-- Potencial de Gank Rating -->
       <div class="flex flex-col items-center space-y-1 w-full">
-        <span class="text-xs text-gray-400 font-medium">Potencial de Gank</span>
+        <span class="text-xs text-gray-400 font-medium">Potencial</span>
         <div class="flex items-center space-x-1">
           <div class="flex space-x-1">
-            <div v-for="n in 5" :key="n" 
+            <div v-for="n in 5" :key="'potential-' + n" 
                  class="w-2 h-2 rounded-full transition-all" 
                  :class="n <= rating ? 'bg-gold-400 shadow-sm shadow-gold-400' : 'bg-gray-600'"
                  :title="`${rating} de 5 estrelas`">
@@ -110,6 +126,10 @@ const props = defineProps({
   },
   championSide: {
     type: Object,
+    default: null
+  },
+  gankEase: {
+    type: Number,
     default: null
   }
 })
