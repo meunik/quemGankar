@@ -17,9 +17,14 @@
         </div>
       </div>
       
-      <!-- Badge de Melhor Lane -->
-      <div v-if="isBestLane" class="bg-green-500 text-black text-xs font-bold px-3 py-1 rounded-full animate-pulse">
-        ⭐ MELHOR ROTA PARA GANKAR
+      <!-- Badge de Melhor Lane (com espaço reservado) -->
+      <div class="h-7 flex items-center justify-center">
+        <div 
+          v-if="isBestLane" 
+          class="bg-green-500 text-black text-xs font-bold px-3 py-1 rounded-full animate-pulse"
+        >
+          ⭐ MELHOR ROTA PARA GANKAR
+        </div>
       </div>
       
       <!-- Seletor de Campeão -->

@@ -1,34 +1,43 @@
 <template>
   <div class="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-gray-900">
-    <!-- Header -->
-    <header class="bg-gray-800/80 backdrop-blur-sm border-b border-gray-700 sticky top-0 z-10">
-      <div class="max-w-7xl mx-auto px-4 py-6">
-        <div class="text-center">
-          <h1 class="text-4xl font-bold text-transparent bg-gradient-to-r from-gold-400 to-gold-600 bg-clip-text mb-2">
-            Quem Gankar
-          </h1>
-          <p class="text-gray-300 text-lg">
-            Ranking dos Melhores Campeões para Jungle Gankar
-          </p>
-          <p class="text-gray-400 text-sm mt-1">
-            League of Legends - 
-            <span v-if="selectedLevel" class="text-gold-400 font-medium">
-              Especializado em ganks de nível {{ selectedLevel }}
-            </span>
-            <span v-else>
-              Baseado em potencial geral de gank (níveis 2, 3 e 6)
-            </span>
-          </p>
-        </div>
+    <!-- Título e Descrição (fora do header) -->
+    <div class="bg-gray-900/50 py-6">
+      <div class="max-w-7xl mx-auto px-4 text-center">
+        <h1 class="text-4xl font-bold text-gold-400 bg-gradient-to-r from-gold-400 to-gold-600 bg-clip-text mb-2">
+          Quem Gankar
+        </h1>
+        <p class="text-gray-300 text-lg">
+          Ranking dos Melhores Campeões para Jungle Gankar
+        </p>
+        <p class="text-gray-400 text-sm mt-1">
+          League of Legends - 
+          <span v-if="selectedLevel" class="text-gold-400 font-medium">
+            Especializado em ganks de nível {{ selectedLevel }}
+          </span>
+          <span v-else>
+            Baseado em potencial geral de gank (níveis 2, 3 e 6)
+          </span>
+        </p>
       </div>
-    </header>
+    </div>
 
-    <!-- Filtros -->
-    <div class="max-w-7xl mx-auto px-4 py-4">
-      <div class="bg-gray-800/50 backdrop-blur-sm rounded-xl p-3 mb-4 border border-gray-700">
-        <div class="flex flex-wrap items-center justify-center gap-3">
-          <label class="text-white font-medium text-sm">Filtrar por nível de gank:</label>
-          <div class="flex space-x-2">
+    <!-- Header Compacto com Logo e Filtros -->
+    <header class="bg-gray-800/80 backdrop-blur-sm border-b border-gray-700 sticky top-0 z-10 shadow-lg">
+      <div class="max-w-7xl mx-auto px-4 py-3">
+        <div class="flex items-center justify-between">
+          <!-- Logo e Nome -->
+          <div class="flex items-center space-x-3">
+            <div class="w-10 h-10 bg-gradient-to-br from-gold-400 to-gold-600 rounded-lg flex items-center justify-center shadow-lg">
+              <svg class="w-6 h-6 text-gold-400" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z" />
+              </svg>
+            </div>
+            <h2 class="text-xl font-bold text-white hidden md:block">Quem Gankar</h2>
+          </div>
+
+          <!-- Filtros de Nível -->
+          <div class="flex items-center space-x-2">
+            <span class="text-gray-300 text-sm font-medium hidden sm:inline">Nível:</span>
             <button 
               v-for="level in [2, 3, 6]" 
               :key="level"
@@ -36,28 +45,30 @@
               :class="[
                 'px-3 py-1.5 rounded-lg font-medium transition-colors duration-200 text-sm',
                 selectedLevel === level 
-                  ? 'bg-gold-500 text-black' 
+                  ? 'bg-gold-500 text-black shadow-md' 
                   : 'bg-gray-700 text-white hover:bg-gray-600'
               ]"
             >
-              Nível {{ level }}
+              {{ level }}
+            </button>
+            <button 
+              @click="selectedLevel = null"
+              :class="[
+                'px-3 py-1.5 rounded-lg font-medium transition-colors duration-200 text-sm',
+                selectedLevel === null 
+                  ? 'bg-gold-500 text-black shadow-md' 
+                  : 'bg-gray-700 text-white hover:bg-gray-600'
+              ]"
+            >
+              Todos
             </button>
           </div>
-          <button 
-            @click="selectedLevel = null"
-            :class="[
-              'px-3 py-1.5 rounded-lg font-medium transition-colors duration-200 text-sm',
-              selectedLevel === null 
-                ? 'bg-gold-500 text-black' 
-                : 'bg-gray-700 text-white hover:bg-gray-600'
-            ]"
-          >
-            Todos os Níveis
-          </button>
         </div>
       </div>
+    </header>
 
-      <!-- Legenda do Sistema de Rating -->
+    <!-- Legenda do Sistema de Rating -->
+    <div class="max-w-7xl mx-auto px-4 py-4">
       <div class="bg-blue-900/20 backdrop-blur-sm rounded-xl p-3 mb-4 border border-blue-700/50">
         <div class="flex items-start space-x-2">
           <div class="text-blue-400 text-lg mt-0.5">ℹ️</div>
@@ -209,7 +220,7 @@ const selectedChampions = ref({
 })
 
 // Ordem de exibição das posições
-const positionOrder = ['MIDDLE', 'TOP', 'BOTTOM', 'UTILITY']
+const positionOrder = ['TOP', 'MIDDLE', 'BOTTOM', 'UTILITY']
 
 // Nomes das posições em português
 const positionNames = {
