@@ -73,28 +73,43 @@
         <div class="flex items-start space-x-2">
           <div class="text-blue-400 text-lg mt-0.5">ℹ️</div>
           <div class="flex-1">
-            <h3 class="text-white font-semibold text-sm mb-1">Como funciona o sistema de avaliação:</h3>
-            <p class="text-gray-300 text-xs leading-relaxed">
-              O <strong class="text-gold-400">Potencial de Gank</strong> indica o quão favorável é gankar aquela lane quando o campeão está jogando. 
-              A classificação varia de 1 a 5 estrelas, onde:
-            </p>
-            <div class="mt-1.5 space-y-0.5 text-xs text-gray-300">
-              <div class="flex items-center space-x-2">
-                <span class="text-gold-400">★★★★★</span>
-                <span>Excelente - Top 3 campeões (melhor follow-up, CC ou burst)</span>
+            <h3 class="text-white font-semibold text-sm mb-2">Sistema de Classificação Dinâmico:</h3>
+            
+            <!-- Prioridade 1: Potencial de Gank -->
+            <div class="mb-2">
+              <p class="text-gray-300 text-xs font-medium mb-1">
+                <strong class="text-gold-400">1️⃣ Potencial de Gank</strong> (1-5 ⭐) - Prioridade MÁXIMA
+              </p>
+              <p class="text-gray-400 text-xs leading-relaxed ml-4">
+                Baseado em CC, burst damage e vulnerabilidade. Tanks e Marksmen = alto potencial.
+              </p>
+            </div>
+            
+            <!-- Prioridade 2: Strong/Weak Side -->
+            <div class="mb-2">
+              <p class="text-gray-300 text-xs font-medium mb-1">
+                <strong class="text-red-400">2️⃣ Strong Side</strong> 🔥 vs <strong class="text-blue-400">Weak Side</strong> ⚖️
+              </p>
+              <div class="text-gray-400 text-xs leading-relaxed ml-4 space-y-0.5">
+                <div><span class="text-red-400 font-bold">Strong Side:</span> Campeões early game que PRECISAM de ganks para snowball (ex: Samira, Draven)</div>
+                <div><span class="text-blue-400 font-bold">Weak Side:</span> Campeões que escalam sozinhos e podem esperar (ex: K'Sante, Orianna)</div>
               </div>
-              <div class="flex items-center space-x-2">
-                <span class="text-gold-400">★★★★☆</span>
-                <span>Muito Bom - Top 4-6 (ótimo potencial de setup)</span>
-              </div>
-              <div class="flex items-center space-x-2">
-                <span class="text-gold-400">★★★☆☆</span>
-                <span>Bom - Top 7-10 (bom follow-up)</span>
-              </div>
-              <div class="flex items-center space-x-2">
-                <span class="text-gray-400">★★☆☆☆</span>
-                <span>Moderado - Demais campeões (potencial limitado ou situacional)</span>
-              </div>
+            </div>
+            
+            <!-- Prioridade 3: Pick Rate -->
+            <div>
+              <p class="text-gray-300 text-xs font-medium mb-1">
+                <strong class="text-purple-400">3️⃣ Pick Rate</strong> 📊 - Desempate
+              </p>
+              <p class="text-gray-400 text-xs leading-relaxed ml-4">
+                Taxa de escolha do campeão na posição. Usado como critério final de ordenação.
+              </p>
+            </div>
+            
+            <div class="mt-2 pt-2 border-t border-blue-700/30">
+              <p class="text-gray-400 text-xs italic">
+                ✨ Todos os dados são calculados dinamicamente a partir das APIs da Riot Games
+              </p>
             </div>
           </div>
         </div>
@@ -169,6 +184,7 @@
           :position="position"
           :champions="getChampionsByPosition(position)"
           :all-champions="allChampionsArray"
+          :champion-sides="championSides"
           :version="gameVersion"
           :selected-champion="selectedChampions[position]"
           :is-best-lane="getBestLaneToGank === position"
@@ -199,6 +215,7 @@ import {
   getChampions, 
   getChampionPositions,
   mapChampionPositions,
+  calculateChampionSides,
   getPositionIconUrl,
   getChampionImageUrl
 } from './services/riotApi.js'
@@ -209,6 +226,8 @@ const error = ref(null)
 const gameVersion = ref('15.20.1')
 const champions = ref({})
 const championPositions = ref({})
+const championSides = ref({}) // Strong/Weak side por campeão e posição
+const positionDataRaw = ref({}) // Dados brutos de pick rate
 const selectedLevel = ref(null)
 
 // Campeões selecionados por posição
@@ -230,87 +249,6 @@ const positionNames = {
   UTILITY: 'Suporte'
 }
 
-// Dados de ranking baseado em potencial de gank por nível
-const gankPotentialByLevel = {
-  2: {
-    // Nível 2 - Primeiros ganks, champions com CC ou burst early
-    MIDDLE: [
-      'LeBlanc', 'Syndra', 'TwistedFate', 'Katarina', 'Zed', 
-      'Yasuo', 'Ahri', 'Kassadin', 'Azir', 'Orianna'
-    ],
-    TOP: [
-      'Camille', 'Irelia', 'Renekton', 'Darius', 'Jax',
-      'Fiora', 'Shen', 'Garen', 'Malphite', 'Ornn'
-    ],
-    BOTTOM: [
-      'Caitlyn', 'Jhin', 'Ashe', 'MissFortune', 'Jinx',
-      'Ezreal', 'Lucian', 'Vayne', 'KaiSa', 'Xayah'
-    ],
-    UTILITY: [
-      'Thresh', 'Nautilus', 'Leona', 'Blitzcrank', 'Alistar',
-      'Morgana', 'Braum', 'Lulu', 'Janna', 'Soraka'
-    ]
-  },
-  3: {
-    // Nível 3 - Mais opções de combo, skills de mobilidade
-    MIDDLE: [
-      'TwistedFate', 'LeBlanc', 'Zed', 'Katarina', 'Yasuo',
-      'Ahri', 'Kassadin', 'Syndra', 'Azir', 'Orianna'
-    ],
-    TOP: [
-      'Shen', 'Camille', 'Irelia', 'Jax', 'Fiora',
-      'Renekton', 'Darius', 'Garen', 'Malphite', 'Ornn'
-    ],
-    BOTTOM: [
-      'Caitlyn', 'Ezreal', 'Lucian', 'Jhin', 'Jinx',
-      'Ashe', 'MissFortune', 'Vayne', 'KaiSa', 'Xayah'
-    ],
-    UTILITY: [
-      'Thresh', 'Blitzcrank', 'Nautilus', 'Morgana', 'Leona',
-      'Alistar', 'Braum', 'Lulu', 'Janna', 'Soraka'
-    ]
-  },
-  6: {
-    // Nível 6 - Ultimate disponível, alto potencial de pick
-    MIDDLE: [
-      'TwistedFate', 'Kassadin', 'LeBlanc', 'Zed', 'Yasuo',
-      'Katarina', 'Ahri', 'Azir', 'Syndra', 'Orianna'
-    ],
-    TOP: [
-      'Shen', 'Camille', 'Malphite', 'Irelia', 'Jax',
-      'Fiora', 'Renekton', 'Darius', 'Garen', 'Ornn'
-    ],
-    BOTTOM: [
-      'Jhin', 'Ashe', 'MissFortune', 'Caitlyn', 'Jinx',
-      'Ezreal', 'Vayne', 'KaiSa', 'Lucian', 'Xayah'
-    ],
-    UTILITY: [
-      'Thresh', 'Nautilus', 'Leona', 'Morgana', 'Blitzcrank',
-      'Alistar', 'Braum', 'Lulu', 'Janna', 'Soraka'
-    ]
-  }
-}
-
-// Ranking geral (todos os níveis combinados)
-const gankPotential = {
-  MIDDLE: [
-    'TwistedFate', 'LeBlanc', 'Kassadin', 'Zed', 'Katarina', 
-    'Yasuo', 'Ahri', 'Syndra', 'Azir', 'Orianna'
-  ],
-  TOP: [
-    'Shen', 'Camille', 'Irelia', 'Jax', 'Fiora',
-    'Renekton', 'Darius', 'Malphite', 'Garen', 'Ornn'
-  ],
-  BOTTOM: [
-    'Caitlyn', 'Jhin', 'Ashe', 'Ezreal', 'MissFortune',
-    'Jinx', 'Lucian', 'Vayne', 'KaiSa', 'Xayah'
-  ],
-  UTILITY: [
-    'Thresh', 'Nautilus', 'Leona', 'Blitzcrank', 'Morgana',
-    'Alistar', 'Braum', 'Lulu', 'Janna', 'Soraka'
-  ]
-}
-
 // Função para carregar todos os dados
 const loadData = async () => {
   try {
@@ -326,12 +264,18 @@ const loadData = async () => {
     
     // Carrega posições (retorna o JSON bruto da Community Dragon)
     const positionsData = await getChampionPositions()
+    positionDataRaw.value = positionsData
     
     // Mapeia os IDs de campeões para suas posições
     const mappedPositions = mapChampionPositions(positionsData, championsData)
     championPositions.value = mappedPositions
     
+    // Calcula Strong/Weak Side para cada campeão em cada posição
+    const calculatedSides = await calculateChampionSides(positionsData, championsData, gameVersion.value)
+    championSides.value = calculatedSides
+    
     console.log('Posições carregadas:', Object.keys(mappedPositions).length, 'campeões')
+    console.log('Strong/Weak sides calculados:', Object.keys(calculatedSides).length, 'campeões')
     
   } catch (err) {
     error.value = err.message || 'Erro desconhecido ao carregar dados'
@@ -352,33 +296,40 @@ const championCounts = computed(() => {
 
 // Função para obter campeões por posição ordenados por potencial de gank
 const getChampionsByPosition = (position) => {
-  // Seleciona o ranking baseado no nível selecionado
-  const currentGankData = selectedLevel.value ? 
-    gankPotentialByLevel[selectedLevel.value] : 
-    gankPotential
-    
-  const potentialOrder = currentGankData[position] || []
   const positionChampions = []
   
-  // Primeiro, adiciona campeões na ordem de potencial definida
-  potentialOrder.forEach(championKey => {
-    const champion = champions.value[championKey]
-    if (champion) {
-      positionChampions.push(champion)
-    }
-  })
-  
-  // Depois adiciona outros campeões da posição que não estão na lista de potencial
+  // Obter todos os campeões que jogam nesta posição
   Object.values(champions.value).forEach(champion => {
     const championPositionsList = championPositions.value[champion.name] || []
     
-    if (championPositionsList.includes(position) && 
-        !positionChampions.find(c => c.id === champion.id)) {
+    if (championPositionsList.includes(position)) {
       positionChampions.push(champion)
     }
   })
   
-  return positionChampions // Retorna TODOS os campeões da posição
+  // Ordenar baseado em prioridade: 1) Gank Potential, 2) Strong Side, 3) Pick Rate
+  positionChampions.sort((a, b) => {
+    const aSideData = championSides.value[a.name]?.[position]
+    const bSideData = championSides.value[b.name]?.[position]
+    
+    // Se não tiver dados, coloca no final
+    if (!aSideData && !bSideData) return 0
+    if (!aSideData) return 1
+    if (!bSideData) return -1
+    
+    // Prioridade 1: Gank Potential (maior é melhor)
+    const gankPotentialDiff = (bSideData.gankPotential || 0) - (aSideData.gankPotential || 0)
+    if (gankPotentialDiff !== 0) return gankPotentialDiff
+    
+    // Prioridade 2: Strong Side vem primeiro (campeões que PRECISAM de gank)
+    if (aSideData.side === 'STRONG' && bSideData.side === 'WEAK') return -1
+    if (aSideData.side === 'WEAK' && bSideData.side === 'STRONG') return 1
+    
+    // Prioridade 3: Pick Rate (maior é melhor)
+    return bSideData.pickRate - aSideData.pickRate
+  })
+  
+  return positionChampions
 }
 
 // Função para obter nome da posição

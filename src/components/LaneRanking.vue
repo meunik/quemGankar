@@ -48,20 +48,22 @@
         :version="version"
         :rating="selectedChampionRating"
         :is-selected="true"
+        :champion-side="championSides[selectedChampion.name]?.[position]"
       />
       <div class="border-b border-gray-600 mt-2"></div>
     </div>
     
     <!-- Lista Vertical de Campeões -->
-    <div class="flex flex-col space-y-2 overflow-y-auto flex-1 pr-1">
+    <div class="flex flex-col space-y-2 overflow-y-auto flex-1">
       <ChampionCard 
         v-for="(champion, index) in displayedChampions" 
         :key="champion.id"
         :champion="champion"
         :rank="getChampionRank(champion, index)"
         :version="version"
-        :rating="getRating(getChampionRank(champion, index) - 1)"
+        :rating="getRating(champion)"
         :is-selected="false"
+        :champion-side="championSides[champion.name]?.[position]"
       />
     </div>
   </div>
@@ -85,6 +87,10 @@ const props = defineProps({
   allChampions: {
     type: Array,
     required: true
+  },
+  championSides: {
+    type: Object,
+    default: () => ({})
   },
   version: {
     type: String,
@@ -136,7 +142,8 @@ const selectedChampionRank = computed(() => {
 
 // Obtém o rating do campeão selecionado
 const selectedChampionRating = computed(() => {
-  return getRating(selectedChampionRank.value - 1)
+  if (!props.selectedChampion) return 3
+  return props.championSides[props.selectedChampion.name]?.[props.position]?.gankPotential || 3
 })
 
 // Campeões exibidos (sem o selecionado se ele estiver na lista)
@@ -152,12 +159,9 @@ const getChampionRank = (champion, displayIndex) => {
   return originalIndex + 1
 }
 
-// Função para simular rating baseado na posição no ranking
-const getRating = (index) => {
-  if (index < 3) return 5      // Top 3 = 5 estrelas
-  if (index < 6) return 4      // Top 6 = 4 estrelas  
-  if (index < 10) return 3     // Top 10 = 3 estrelas
-  return 2                     // Resto = 2 estrelas
+// Função para obter rating do campeão (usa gankPotential do championSides)
+const getRating = (champion) => {
+  return props.championSides[champion.name]?.[props.position]?.gankPotential || 3
 }
 </script>
 

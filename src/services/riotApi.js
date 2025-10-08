@@ -112,6 +112,105 @@ export const mapChampionPositions = (positionData, champions) => {
   return championPositionMap
 }
 
+// Função para calcular Strong/Weak Side baseado em características do campeão
+// Strong Side = Campeões early game que precisam de ganks para snowball
+// Weak Side = Campeões que escalam bem e podem ficar sozinhos
+export const calculateChampionSides = async (positionData, champions, version) => {
+  const championSideMap = {}
+  
+  // Para cada posição
+  for (const [position, championsInPosition] of Object.entries(positionData)) {
+    const positionName = position === 'SUPPORT' ? 'UTILITY' : position
+    
+    // Para cada campeão nesta posição
+    for (const [championId, pickRate] of Object.entries(championsInPosition)) {
+      const champion = Object.values(champions).find(c => c.key === championId)
+      
+      if (champion) {
+        if (!championSideMap[champion.name]) {
+          championSideMap[champion.name] = {}
+        }
+        
+        // Buscar detalhes do campeão para analisar suas características
+        const details = await getChampionDetails(version, champion.id)
+        
+        if (details) {
+          // ===== CALCULAR POTENCIAL DE GANK =====
+          // Baseado em: CC potencial, burst damage, mobilidade
+          let gankPotential = 0
+          
+          // 1. Tags que indicam CC/Setup
+          if (details.tags.includes('Fighter')) gankPotential += 1.5  // Tem engage
+          if (details.tags.includes('Tank')) gankPotential += 2       // CC pesado
+          if (details.tags.includes('Assassin')) gankPotential += 1   // Burst damage
+          if (details.tags.includes('Mage')) gankPotential += 0.5     // Pode ter CC
+          
+          // 2. Campeões com pouca mobilidade são mais fáceis de gankar
+          // (baixo attack + baixa defense = imóvel e vulnerável)
+          if (details.info.defense <= 3) gankPotential += 1.5
+          
+          // 3. ADCs são sempre alto prioridade para gank
+          if (details.tags.includes('Marksman')) gankPotential += 2
+          
+          // 4. Suportes com CC são excelentes para receber gank
+          if (details.tags.includes('Support')) gankPotential += 1.5
+          
+          // Normalizar para escala 1-5
+          const normalizedGankPotential = Math.min(5, Math.max(1, Math.round(gankPotential)))
+          
+          // ===== CALCULAR STRONG/WEAK SIDE =====
+          let strongSideScore = 0
+          
+          // 1. Tags que indicam early game (Assassin, Fighter ganham pontos)
+          if (details.tags.includes('Assassin')) strongSideScore += 2
+          if (details.tags.includes('Fighter')) strongSideScore += 1.5
+          
+          // 2. Campeões com alto attack mas baixa defense precisam de vantagem inicial
+          const attackDefenseRatio = details.info.attack / details.info.defense
+          if (attackDefenseRatio > 1.5) strongSideScore += 1.5
+          
+          // 3. Baixa defesa indica fragilidade, precisa snowball
+          if (details.info.defense <= 4) strongSideScore += 1
+          
+          // 4. Tags de scaling (Mage de longo alcance tende a scale)
+          if (details.tags.includes('Mage') && !details.tags.includes('Assassin')) strongSideScore -= 1
+          if (details.tags.includes('Tank')) strongSideScore -= 1.5
+          if (details.tags.includes('Support')) strongSideScore -= 1
+          
+          // 5. Alto magic damage pode indicar scaling
+          if (details.info.magic >= 7) strongSideScore -= 0.5
+          
+          // Determinar se é Strong ou Weak Side
+          // Score > 2 = Strong Side (precisa de ganks)
+          // Score <= 2 = Weak Side (pode ficar sozinho)
+          const isStrongSide = strongSideScore > 2
+          
+          championSideMap[champion.name][positionName] = {
+            side: isStrongSide ? 'STRONG' : 'WEAK',
+            gankPotential: normalizedGankPotential,
+            pickRate: pickRate,
+            strongSideScore: strongSideScore,
+            tags: details.tags,
+            info: details.info
+          }
+        }
+      }
+    }
+  }
+  
+  return championSideMap
+}
+
+// Função para obter dados de pick rate de um campeão em uma posição específica
+export const getChampionPickRate = (positionData, championKey, position) => {
+  const positionName = position === 'UTILITY' ? 'SUPPORT' : position
+  const championsInPosition = positionData[positionName]
+  
+  if (!championsInPosition) return null
+  
+  return championsInPosition[championKey] || null
+}
+
 // Função para gerar URL da imagem do campeão
 export const getChampionImageUrl = (version, championKey) => {
   return `https://ddragon.leagueoflegends.com/cdn/${version}/img/champion/${championKey}.png`

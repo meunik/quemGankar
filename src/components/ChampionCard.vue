@@ -37,6 +37,32 @@
           {{ champion.name }}
         </h3>
         <p class="text-xs text-gray-400 line-clamp-1">{{ champion.title }}</p>
+        
+        <!-- Badge Strong/Weak Side -->
+        <div v-if="championSide" class="mt-1 flex flex-col items-center space-y-1">
+          <span 
+            v-if="championSide.side === 'STRONG'"
+            class="inline-block px-2 py-0.5 bg-red-600 text-white text-xs font-bold rounded-full"
+            title="Strong Side - Precisa de ganks early para snowball!"
+          >
+            � STRONG SIDE
+          </span>
+          <span 
+            v-else
+            class="inline-block px-2 py-0.5 bg-blue-600 text-white text-xs font-bold rounded-full"
+            title="Weak Side - Escala bem, pode ficar sozinho"
+          >
+            ⚖️ WEAK SIDE
+          </span>
+          
+          <!-- Pick Rate separado -->
+          <span 
+            class="inline-block px-2 py-0.5 bg-purple-600/80 text-white text-xs font-medium rounded-full"
+            :title="`Taxa de escolha: ${(championSide.pickRate * 100).toFixed(1)}%`"
+          >
+            � {{ (championSide.pickRate * 100).toFixed(1) }}% pick
+          </span>
+        </div>
       </div>
       
       <!-- Potencial de Gank Rating -->
@@ -81,6 +107,10 @@ const props = defineProps({
   isSelected: {
     type: Boolean,
     default: false
+  },
+  championSide: {
+    type: Object,
+    default: null
   }
 })
 
