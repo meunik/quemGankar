@@ -344,7 +344,7 @@ export const calculateChampionSides = async (positionData, champions, version) =
           championSideMap[champion.name][positionName] = {
             side: isStrongSide ? 'STRONG' : 'WEAK',
             gankPotential: normalizedGankPotential,
-            gankEase: gankEase, // { level2: 1-5, level3: 1-5, level6: 1-5 }
+            gankEase: gankEase, // { level1: 1-5, level2: 1-5, level3: 1-5, level6: 1-5 }
             pickRate: pickRate,
             strongSideScore: strongSideScore,
             tags: details.tags,
