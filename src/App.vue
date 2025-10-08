@@ -39,7 +39,18 @@
           <div class="flex items-center space-x-2">
             <span class="text-gray-300 text-sm font-medium hidden sm:inline">Nível:</span>
             <button 
-              v-for="level in [2, 3, 6]" 
+              @click="selectedLevel = 1"
+              :class="[
+                'px-3 py-1.5 rounded-lg font-medium transition-colors duration-200 text-sm',
+                selectedLevel === 1 
+                  ? 'bg-gold-500 text-black shadow-md' 
+                  : 'bg-gray-700 text-white hover:bg-gray-600'
+              ]"
+            >
+              1
+            </button>
+            <button 
+              v-for="level in [2, 3]" 
               :key="level"
               @click="selectedLevel = level"
               :class="[
@@ -52,15 +63,15 @@
               {{ level }}
             </button>
             <button 
-              @click="selectedLevel = null"
+              @click="selectedLevel = 6"
               :class="[
                 'px-3 py-1.5 rounded-lg font-medium transition-colors duration-200 text-sm',
-                selectedLevel === null 
+                selectedLevel === 6 
                   ? 'bg-gold-500 text-black shadow-md' 
                   : 'bg-gray-700 text-white hover:bg-gray-600'
               ]"
             >
-              Todos
+              6+
             </button>
           </div>
         </div>
@@ -82,7 +93,7 @@
               </p>
               <p class="text-gray-400 text-xs leading-relaxed ml-4">
                 Quão <strong>fácil é gankar COM esse campeão ALIADO</strong>. Alto = Campeão tem CC/setup (Pantheon stun, Jax E, Leona). Baixo = Sem CC/difícil (Heimerdinger, Fiora). 
-                <strong>Varia por nível:</strong> Tanks/Suportes fortes em todos os níveis (CC), Marksman fracos até lvl 6 (alguns ganham ult de CC como Ashe R).
+                <strong>Varia por nível:</strong> Lvl 1 (só Q disponível), Lvl 2 (Q+W), Lvl 3 (Q+W+E), Lvl 6+ (com ult). Tanks/Suportes fortes em todos os níveis (CC), Marksman fracos até lvl 6+ (alguns ganham ult de CC como Ashe R).
               </p>
             </div>
             

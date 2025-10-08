@@ -181,13 +181,13 @@ const getGankEase = (champion) => {
   const gankEaseData = props.championSides[champion.name]?.[props.position]?.gankEase
   if (!gankEaseData) return 3
   
+  if (props.selectedLevel === 1) return gankEaseData.level1 || 3
   if (props.selectedLevel === 2) return gankEaseData.level2 || 3
   if (props.selectedLevel === 3) return gankEaseData.level3 || 3
   if (props.selectedLevel === 6) return gankEaseData.level6 || 3
   
-  // Se "Todos", retorna média
-  const avg = (gankEaseData.level2 + gankEaseData.level3 + gankEaseData.level6) / 3
-  return Math.round(avg)
+  // Padrão para nível 3
+  return gankEaseData.level3 || 3
 }
 </script>
 
